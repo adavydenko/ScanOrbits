@@ -1,0 +1,110 @@
+function Rho = GetPerigee(E, h, r0)
+%GetPerigee (P,h) Нахождения начальных условий для решения уравнения движения.
+%   Входные параметры:
+%   E   - значение интеграла энергии,
+%   h   - значение интеграла площадей.
+%   r0  - значение параметра модели потенциала 
+%   Выходные параметры:
+%   Rho - hfcc,
+
+%'r^6*(4*E^2) + r^4*(4*E^2*r0^2 - 4*r0^2 - 4*E*h^2) + r^2*(h^4 - 4*E*h^2*r0^2) + h^4*r0^2'
+
+p = [4*E^2, 4*E^2*r0^2 - 4*r0^2 - 4*E*h^2, h^4 - 4*E*h^2*r0^2, h^4*r0^2];
+
+%p = [4/r0^2, 4*E - 4*r0^2 - 4*(E^(1/2)/r0^(1/2))*h^2, h^4 - 4*E^(1/2)*h^2, h^4*r0^2];
+rp = roots(p);
+
+[i tt] = size(rp);
+
+if (i > 0)
+    r = [];
+    for j = 1:i
+        if (rp(j) > 0)
+            a = sqrt(rp(j));
+            r = [r a];
+        end;
+    end;
+end;
+
+% r(1) = sqrt(r(1));
+% r(2) = sqrt(r(2));
+% r(3) = sqrt(r(3));
+
+% fprintf('Значения корней, полученные методом roots():\n');
+% fprintf('\t%u -> %u\n', r(1), polyval(p, r(1)));
+% fprintf('\t%u -> %u\n', r(2), polyval(p, r(2)));
+% fprintf('\t%u -> %u\n', r(3), polyval(p, r(3)));
+
+% % [r1,r2,r3] = getEquationZeros(E, h, r0);
+% % fprintf('Значения корней, полученные методом Виета-Кардано:\n');
+% % fprintf('\t%u -> %u\n', r1, polyval(p, r1));
+% % fprintf('\t%u -> %u\n', r2, polyval(p, r2));
+% % fprintf('\t%u -> %u\n', r3, polyval(p, r3));
+
+% Rho = getMinPositiveValue(r(1), r(2), r(3));
+
+Rho = min(r);
+
+%     function [z1, z2, z3] = getEquationZeros (E, h, r0)
+%         a = (4*E^2*r0^2 - 4*r0^2 - 4*E*h^2)/(4*E^2);
+%         b = (h^4 - 4*E*h^2*r0^2)/(4*E^2);
+%         c = (h^4*r0^2)/(4*E^2);
+% 
+%         [t1, t2, t3] = doCubic(a, b, c);
+% 
+%         %z1 = sqrt(t1);
+%         %z2 = sqrt(t2);
+%         %z3 = sqrt(t3);
+%         z1 = t1;
+%         z2 = t2;
+%         z3 = t3;
+%     end
+%     
+%     function [x1, x2, x3] = doCubic (a, b, c) %Вычисление корней кубического уравнения методом Виета-Кардано
+%         Q = (a^2-3*b)/9;
+%         R = (2*a^3 - 9*a*b + 27*c)/54;
+% 
+%         R2 = R*R;
+%         Q3 = Q*Q*Q;
+%         if (R2 >= Q3)
+%             t = acos(R/sqrt(Q3))/3;
+%             x1 = -2*sqrt(Q)*cos(t) - a/3;
+%             x2 = -2*sqrt(Q)*cos(t + (2*pi/3)) - a/3;
+%             x3 = -2*sqrt(Q)*cos(t - (2*pi/3)) - a/3;
+%         else
+%             Aa = -1 * sign(R) * ((abs(R) + sqrt(R2 - Q3)) ^ (1/3));
+%             if (Aa ~= 0)
+%                 Bb = Q/Aa;
+%             else
+%                 Bb = 0;
+%             end
+% 
+%             x1 = (Aa + Bb) - a/3;
+% 
+%             if (Aa == Bb)
+%                 x2 = -Aa - a/3;
+%                 x3 = x2;
+%             else
+%                 x2 = -1;    %Т.к. значение комплексных корней нас не интересуют, то мы возвращаем -1.
+%                 x3 = -1;
+%             end
+%         end
+%     end
+%     
+%     function result = getMinPositiveValue (v1, v2, v3)
+% 
+%             if (v1 <= 0)
+%                 v1 = max ([v1, v2, v3]);
+%             end
+% 
+%             if (v2 <= 0)
+%                 v2 = max ([v1, v2, v3]);
+%             end
+% 
+%             if (v3 <= 0)
+%                 v3 = max ([v1, v2, v3]);
+%             end
+% 
+%             result = min ([v1, v2, v3]);
+%     end
+end

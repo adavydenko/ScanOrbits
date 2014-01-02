@@ -1,0 +1,16 @@
+function [x, y, Vx, Vy] = getIC_isolated(r, w, H, I)
+%UNTITLED1 Summary of this function goes here
+%  Detailed explanation goes here
+    
+    Vr = sqrt(2*H - (I/r)^2 - F(r));
+    Vw = I/r;
+    
+    [x, y] = pol2cart (w, r);
+    
+    %???
+    Vx = Vr*cos(w) - Vw*sin(w);
+    Vy = Vr*sin(w) + Vw
+    
+    
+    function result = F(r)
+        result = (1+r^2)^(-1/2);

@@ -1,0 +1,5 @@
+gamma = 1.28
+calc time = 0..10
+mesh: -2:0.02:2
+rho = 0:0.1:1
+w = 0:pi*0.1:2*pi

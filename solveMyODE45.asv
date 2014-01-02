@@ -1,0 +1,5 @@
+function [t_out, Y_out] = solveMyODE45 (ode, t, Y, gamma, r0)
+
+    [t_out, Y_out] = ode45(@myODE, t, Y, [], [gamma, r0]);
+
+end
