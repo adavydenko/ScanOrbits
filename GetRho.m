@@ -1,6 +1,6 @@
 function Rho = GetRho (E, h, a)
     
-    dRho = 0.1;
+    dRho = 0.05;
     
     r_max = 1;
     

@@ -284,6 +284,7 @@ function DoCalc(handles)
         hFigure = figure(f_i);
         set(hFigure, 'Name', num2str(f_i));
         set(0, 'CurrentFigure', hFigure);
+        set(hFigure, 'Renderer', 'OpenGL');
         
         hold all  
         isShownOnFigure = DoOnePCalc(handles, h, E, f_i);
@@ -318,7 +319,7 @@ function DoCalc(handles)
 %==========================================================================
     
 function result = DoOnePCalc(handles, h, E, f_num)
-    isFigureUsed = false;
+    isFigureUsed = false;   
     
     %Время интегрирования и параметры системы ур-ий
     t = [str2double(get(handles.tStartEdit, 'String')) str2double(get(handles.tEndEdit, 'String'))];
@@ -341,11 +342,12 @@ function result = DoOnePCalc(handles, h, E, f_num)
     hold all;
     [~, m] = size(r);
     if m ~= 0
+        keepedPointNumber = 0;
+        ecapedPointNumber = 0;
         for j = 1:m
-            rho = r(j);
-            w = 0;
-             for w = 0:pi*0.1:2*pi
-
+             rho = r(j);
+             w = 0;
+             for w = 0:pi*0.05:2*pi
                [x_, y_, Vx_, Vy_] = getIC_full(rho, w, E, h, a); %Для случая изолированного скопления - getIC_isolated(rho, w, E, h)
                %Указываем функцию, описывающее уравнения движения
                odeFuncHandle = @myODE_full; % | @myODE_isolatedCluster | @my3dODE_full
@@ -365,11 +367,6 @@ function result = DoOnePCalc(handles, h, E, f_num)
                     %Решаем уравнения движения
                     [t, Y] = solveMyODE45(odeFuncHandle, t, [x_ y_ Vx_ Vy_], gamma, a);
 
-                    set(gcf,'CurrentAxes',h_main); hold all; plot(Y(:,1), Y(:,2)); hold off;
-                    set(gcf,'CurrentAxes',h_xVx); hold all; plot(Y(:,1), Y(:,3)); hold off; %FIXME              
-                    set(gcf,'CurrentAxes',h_yVy); hold all; plot(h_yVy, Y(:,2), Y(:,4)); hold off; %FIXME
-                    set(gcf,'CurrentAxes',h_rV); hold all; plot(h_rV, MySqrt(MySqr(Y(:,1)) + MySqr(Y(:,2))), MySqrt(MySqr(Y(:,3)) + MySqr(Y(:,4)))); hold off; %FIXME
-                    
                     p_y = [];
                     p_Vy = [];                
                     for c = 1:(length(Y(:,1))-1)
@@ -378,7 +375,24 @@ function result = DoOnePCalc(handles, h, E, f_num)
                             p_Vy = [p_Vy interp1([Y(c,1) Y(c+1,1)],[Y(c,4) Y(c+1,4)],0)];
                         end
                     end 
-                    plot(h_p_yVy, p_y, p_Vy, 'd');
+                    
+                    if isequal(get(handles.chbPrintCloud, 'Value'), 0)
+                        set(gcf,'CurrentAxes',h_main); hold all; plot(Y(:,1), Y(:,2)); hold off;
+                        set(gcf,'CurrentAxes',h_xVx); hold all; plot(Y(:,1), Y(:,3)); hold off; %FIXME              
+                        set(gcf,'CurrentAxes',h_yVy); hold all; plot(h_yVy, Y(:,2), Y(:,4)); hold off; %FIXME
+                        set(gcf,'CurrentAxes',h_rV); hold all; plot(h_rV, MySqrt(MySqr(Y(:,1)) + MySqr(Y(:,2))), MySqrt(MySqr(Y(:,3)) + MySqr(Y(:,4)))); hold off; %FIXME
+                        plot(h_p_yVy, p_y, p_Vy, 'd');
+                    else
+                        if ~CheckOutCondition(gamma, a, x_, y_, Vx_, Vy_, f_num)
+                            keepedPointNumber = keepedPointNumber + 1;
+                            Z(:, :, 1, keepedPointNumber) = [Y(:,1), Y(:,2)];
+                        else
+                            ecapedPointNumber = ecapedPointNumber + 1;
+                            Z(:, :, 2, ecapedPointNumber) = [Y(:,1), Y(:,2)];
+                        end
+                        
+                    end
+
 
 %                     if length(p_y) > 1
 %                         spline_d = 1:length(p_y);
@@ -411,6 +425,39 @@ function result = DoOnePCalc(handles, h, E, f_num)
              end %for w
         end %for j
     end %if m ~= 0
+    
+    if isequal(get(handles.chbPrintCloud, 'Value'), 1)
+        Z = permute(Z, ...
+                    [4, ... % количество рассчитанных орбит
+                     2, ... % (x,y)
+                     1, ... % рассчитанные значения для каждой звезды, соответствует t0..tn..t
+                     3]);   % типа линии 1 - улетающая, 2 - остающаяся, (по идее можно разделить на 2 независимых массива)
+        set(gcf,'CurrentAxes',h_main); hold all; 
+        set(h_main, 'NextPlot', 'replaceChildren');
+        axis equal;
+        [~, ~, tCounts, lineCounts] = size(Z); % tCounts - соответствует количеству рассчитанных точек для i-й звезды
+        for k = 1:tCounts
+            if lineCounts == 1 % могут быть орбиты только одного типа, поэтому их нужно отображать по-разному
+                marker = '';
+                if keepedPointNumber > 0
+                    marker = '.k';
+                elseif ecapedPointNumber > 0
+                    marker = '.r';
+                end
+                plot(Z(:,1,k), Z(:,2,k), marker);
+            else
+                plot(Z(:,1,k,1), Z(:,2,k,1), '.k', Z(:,1,k,2), Z(:,2,k,2), '.r');
+            end            
+            if k ~= tCounts
+                %timeDiff = Z(1,1,3,k+1) - Z(1,1,3,k);
+                timeDiff = t(k+1) - t(k);
+                pause(timeDiff);
+            end
+        end
+        hold off;
+        
+    end
+    
     hold off;
     
     result = isFigureUsed;
@@ -441,22 +488,23 @@ function result = CheckOutCondition(gamma, a0, x, y, Vx, Vy, f_num)
     
     R0 = abs(Y) - 2*abs(a);
     R02 = sqrt(X^2 + Y^2);
-%     A2 = -1/(2*a0^2); A4 = 3/(8*a0^4);
-%     EA = (2*A2/R0)-4*A4*R0^3;
+
+    A2 = -1/(2*a0^2); A4 = 3/(8*a0^4);
+    EA = (2*A2/R0)-4*A4*R0^3;
+    V = abs(X)/gamma - gamma*EA/g^3;
     
-%     V = abs(X)/gamma - gamma*EA/g^3;
-    V = abs(X)/gamma - (1/a0^2)*(3*gamma/g^2 + 2/g)*R0*(1+R0^2/a0^2)^(-3/2);
+    %V = abs(X)/gamma - (1/a0^2)*(3*gamma/g^2 + 2/g)*R0*(1+R0^2/a0^2)^(-3/2);
     
     if (R0>0) && (X*Y<0) && (V>=0)
         msg = sprintf('{%d}: Условие выполняется (x = %d, y = %d, Vx = %d, Vy = %d, a0 = %d). \n R0 = %d\n X = %d; Y = %d; \n V = %d', f_num, x, y, Vx, Vy, a, R0, X, Y, V)
         %msgbox(msg);
-        %msg
+        msg
         
         result = true;
     else
         msg = sprintf('{%d}: Условие НЕ выполняется (x = %d, y = %d, Vx = %d, Vy = %d, a0 = %d). \n R0 = %d\n X = %d; Y = %d; \n V = %d', f_num, x, y, Vx, Vy, a, R0, X, Y, V);
         %msgbox(msg;;;);
-        %msg
+        msg
         
         result = false;
     end
